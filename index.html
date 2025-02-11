@@ -24,8 +24,6 @@
       position: absolute;
       width: 30px;
       height: 30px;
-      background-color: #007bff;
-      border-radius: 50%;
       text-align: center;
       color: white;
       font-size: 14px;
@@ -33,10 +31,14 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      border-radius: 50%;
     }
-    #input-form {
+    #input-form, #path-form {
       text-align: center;
       margin: 20px auto;
+    }
+    #input-form input, #path-form input {
+      margin: 5px;
     }
     #path-input {
       margin: 20px auto;
@@ -61,13 +63,6 @@
     #save-button:hover {
       background-color: #45a049;
     }
-    #edit-form {
-      margin: 20px auto;
-      text-align: center;
-    }
-    #edit-city-button {
-      margin-top: 10px;
-    }
   </style>
 </head>
 <body>
@@ -86,7 +81,11 @@
     <input type="number" id="y-coord" placeholder="100">
     <br>
     <label for="city-pt">ポイント:</label>
-    <input type="number" id="city-pt" placeholder="1000">
+    <select id="city-pt">
+      <option value="1000">1000 (赤)</option>
+      <option value="1600">1600 (青)</option>
+      <option value="2700">2700 (黄色)</option>
+    </select>
     <br>
     <button id="place-city-button">配置する</button>
   </div>
@@ -95,7 +94,6 @@
   <div id="path-form">
     <label for="path-start">出発城名:</label>
     <input type="text" id="path-start" placeholder="城A">
-    <br>
     <label for="path-end">到着城名:</label>
     <input type="text" id="path-end" placeholder="城B">
     <br>
@@ -132,8 +130,17 @@
         cityElement.style.left = `${city.x}px`;
         cityElement.style.top = `${city.y}px`;
         cityElement.textContent = city.name;
-        cityElement.dataset.cityId = city.id;
+        
+        // ptによって色を変える
+        if (city.pt === 1000) {
+          cityElement.style.backgroundColor = "red";
+        } else if (city.pt === 1600) {
+          cityElement.style.backgroundColor = "blue";
+        } else if (city.pt === 2700) {
+          cityElement.style.backgroundColor = "yellow";
+        }
 
+        cityElement.dataset.cityId = city.id;
         mapContainer.appendChild(cityElement);
       });
     }
@@ -190,7 +197,7 @@
       cityNameInput.value = '';
       xCoordInput.value = '';
       yCoordInput.value = '';
-      cityPtInput.value = '';
+      cityPtInput.value = '1000';
     });
 
     // 道を開通する
