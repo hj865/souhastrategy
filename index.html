@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>キングダム乱 戦略提案</title>
+  <title>キングダム乱 マップ作成</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -33,12 +33,23 @@
       cursor: pointer;
       border-radius: 50%;
     }
-    #input-form, #strategy-form {
+    #input-form, #path-form, #edit-form, #strategy-form {
       text-align: center;
       margin: 20px auto;
     }
-    #input-form input, #strategy-form input, #strategy-form select {
+    #input-form input, #path-form input, #edit-form input, #strategy-form input {
       margin: 5px;
+    }
+    #path-input {
+      margin: 20px auto;
+      display: block;
+      text-align: center;
+    }
+    #strategy {
+      margin: 20px auto;
+      width: 80%;
+      list-style-type: none;
+      padding-left: 0;
     }
     #save-button {
       display: block;
@@ -52,19 +63,49 @@
     #save-button:hover {
       background-color: #45a049;
     }
-    #strategy {
-      margin: 20px auto;
-      width: 80%;
-      list-style-type: none;
-      padding-left: 0;
-    }
   </style>
 </head>
 <body>
 
   <div id="map-container"></div>
 
-  <!-- 戦略設定フォーム -->
+  <!-- 城配置入力フォーム -->
+  <div id="input-form">
+    <label for="city-name">城名:</label>
+    <input type="text" id="city-name" placeholder="城A">
+    <br>
+    <label for="x-coord">X座標:</label>
+    <input type="number" id="x-coord" placeholder="50">
+    <br>
+    <label for="y-coord">Y座標:</label>
+    <input type="number" id="y-coord" placeholder="100">
+    <br>
+    <label for="city-pt">ポイント:</label>
+    <select id="city-pt">
+      <option value="1000">1000 (赤)</option>
+      <option value="1600">1600 (青)</option>
+      <option value="2700">2700 (黒)</option>
+    </select>
+    <br>
+    <button id="place-city-button">配置する</button>
+  </div>
+
+  <!-- 隣接城設定フォーム -->
+  <div id="edit-form">
+    <label for="edit-city">隣接城を設定する城を選択:</label>
+    <select id="edit-city">
+      <option value="">--城を選択--</option>
+    </select>
+    <br>
+    <label for="adjacent-cities">隣接する城を選択:</label>
+    <select id="adjacent-cities" multiple>
+      <option value="">--隣接城を選択--</option>
+    </select>
+    <br>
+    <button id="save-adjacency-button">隣接城を設定</button>
+  </div>
+
+  <!-- 戦略提案フォーム -->
   <div id="strategy-form">
     <label for="current-day">現在の日数:</label>
     <select id="current-day">
@@ -84,30 +125,30 @@
     <button id="generate-strategy-button">戦略を生成</button>
   </div>
 
+  <button id="save-button">マップを保存</button>
+
   <ul id="strategy"></ul>
 
   <script>
     const cities = [];
     const mapContainer = document.getElementById("map-container");
     const strategyList = document.getElementById("strategy");
+    const cityNameInput = document.getElementById("city-name");
+    const xCoordInput = document.getElementById("x-coord");
+    const yCoordInput = document.getElementById("y-coord");
+    const cityPtInput = document.getElementById("city-pt");
+    const placeCityButton = document.getElementById("place-city-button");
+    const editCitySelect = document.getElementById("edit-city");
+    const adjacentCitiesSelect = document.getElementById("adjacent-cities");
+    const saveAdjacencyButton = document.getElementById("save-adjacency-button");
     const currentDaySelect = document.getElementById("current-day");
     const ownedCitiesSelect = document.getElementById("owned-cities");
     const generateStrategyButton = document.getElementById("generate-strategy-button");
 
-    // 城の情報（例）
-    function initializeCities() {
-      cities.push({ id: 1, name: '城A', x: 50, y: 100, pt: 1000, adjacent: [2, 3] });
-      cities.push({ id: 2, name: '城B', x: 200, y: 150, pt: 1600, adjacent: [1, 3] });
-      cities.push({ id: 3, name: '城C', x: 350, y: 200, pt: 2700, adjacent: [1, 2] });
-
-      // 城情報をマップに配置
-      placeCities();
-      updateOwnedCitiesSelect();
-    }
-
     // 城をマップに配置
     function placeCities() {
       mapContainer.innerHTML = ''; // マップをリセット
+
       cities.forEach(city => {
         const cityElement = document.createElement("div");
         cityElement.classList.add("city");
@@ -127,6 +168,29 @@
         cityElement.dataset.cityId = city.id;
         mapContainer.appendChild(cityElement);
       });
+
+      // 編集用のドロップダウンを更新
+      updateCitySelect();
+    }
+
+    // 編集用の選択肢を更新
+    function updateCitySelect() {
+      editCitySelect.innerHTML = '<option value="">--城を選択--</option>';
+      adjacentCitiesSelect.innerHTML = '<option value="">--隣接城を選択--</option>';
+      cities.forEach(city => {
+        const option = document.createElement("option");
+        option.value = city.id;
+        option.textContent = city.name;
+        editCitySelect.appendChild(option);
+
+        const adjacentOption = document.createElement("option");
+        adjacentOption.value = city.id;
+        adjacentOption.textContent = city.name;
+        adjacentCitiesSelect.appendChild(adjacentOption);
+      });
+
+      // 所持城の選択肢を更新
+      updateOwnedCitiesSelect();
     }
 
     // 所持している城を選択するセレクトボックスに追加
@@ -139,6 +203,54 @@
         ownedCitiesSelect.appendChild(option);
       });
     }
+
+    // 城を配置する
+    placeCityButton.addEventListener("click", function() {
+      const cityName = cityNameInput.value;
+      const xCoord = parseInt(xCoordInput.value);
+      const yCoord = parseInt(yCoordInput.value);
+      const pt = parseInt(cityPtInput.value);
+
+      if (cityName && !isNaN(xCoord) && !isNaN(yCoord) && !isNaN(pt)) {
+        const newCity = {
+          id: cities.length + 1,
+          name: cityName,
+          x: xCoord,
+          y: yCoord,
+          pt: pt,
+          adjacent: [] // 隣接城を格納する配列
+        };
+        cities.push(newCity);
+
+        placeCities(); // 城を再配置
+        updateStrategy(); // 戦略リストを更新
+      } else {
+        alert("すべての入力項目を正しく入力してください");
+      }
+
+      // 入力フォームをリセット
+      cityNameInput.value = '';
+      xCoordInput.value = '';
+      yCoordInput.value = '';
+      cityPtInput.value = '1000';
+    });
+
+    // 隣接城を設定する
+    saveAdjacencyButton.addEventListener("click", function() {
+      const selectedCityId = parseInt(editCitySelect.value);
+      const selectedAdjacencies = Array.from(adjacentCitiesSelect.selectedOptions).map(option => parseInt(option.value));
+
+      if (isNaN(selectedCityId) || selectedAdjacencies.length === 0) {
+        alert("隣接城を選んでください");
+        return;
+      }
+
+      const city = cities.find(c => c.id === selectedCityId);
+      city.adjacent = selectedAdjacencies;
+
+      alert(`城 ${city.name} に隣接する城が設定されました`);
+      updateStrategy(); // 戦略リストを更新
+    });
 
     // 戦略を生成する
     generateStrategyButton.addEventListener("click", function() {
@@ -191,7 +303,7 @@
     }
 
     // 初期化
-    initializeCities();
+    placeCities();
   </script>
 
 </body>
