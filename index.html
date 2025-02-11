@@ -91,21 +91,15 @@
     <button id="place-city-button">配置する</button>
   </div>
 
-  <div id="edit-form">
-    <label for="edit-city">城を選んで編集:</label>
-    <select id="edit-city">
-      <option value="">--城を選択--</option>
-    </select>
+  <!-- 道開通フォーム -->
+  <div id="path-form">
+    <label for="path-start">出発城名:</label>
+    <input type="text" id="path-start" placeholder="城A">
     <br>
-    <label for="edit-x-coord">新しいX座標:</label>
-    <input type="number" id="edit-x-coord" placeholder="50">
+    <label for="path-end">到着城名:</label>
+    <input type="text" id="path-end" placeholder="城B">
     <br>
-    <label for="edit-y-coord">新しいY座標:</label>
-    <input type="number" id="edit-y-coord" placeholder="100">
-    <br>
-    <button id="edit-city-button">修正する</button>
-    <br>
-    <button id="delete-city-button">削除する</button>
+    <button id="draw-path-button">道を開通</button>
   </div>
 
   <input type="text" id="path-input" placeholder="城番号1, 城番号2 (例: 1,2)">
@@ -124,11 +118,9 @@
     const yCoordInput = document.getElementById("y-coord");
     const cityPtInput = document.getElementById("city-pt");
     const placeCityButton = document.getElementById("place-city-button");
-    const editCitySelect = document.getElementById("edit-city");
-    const editXCoordInput = document.getElementById("edit-x-coord");
-    const editYCoordInput = document.getElementById("edit-y-coord");
-    const editCityButton = document.getElementById("edit-city-button");
-    const deleteCityButton = document.getElementById("delete-city-button");
+    const pathStartInput = document.getElementById("path-start");
+    const pathEndInput = document.getElementById("path-end");
+    const drawPathButton = document.getElementById("draw-path-button");
 
     // 城をマップに配置
     function placeCities() {
@@ -144,47 +136,32 @@
 
         mapContainer.appendChild(cityElement);
       });
-
-      // 編集用のドロップダウンを更新
-      updateCitySelect();
-    }
-
-    // 編集用の選択肢を更新
-    function updateCitySelect() {
-      editCitySelect.innerHTML = '<option value="">--城を選択--</option>';
-      cities.forEach(city => {
-        const option = document.createElement("option");
-        option.value = city.id;
-        option.textContent = city.name;
-        editCitySelect.appendChild(option);
-      });
     }
 
     // 道を引く
-    function drawPath(from, to) {
-      const fromCity = cities.find(city => city.id === parseInt(from));
-      const toCity = cities.find(city => city.id === parseInt(to));
+    function drawPath(startCityName, endCityName) {
+      const startCity = cities.find(city => city.name === startCityName);
+      const endCity = cities.find(city => city.name === endCityName);
 
-      if (!fromCity || !toCity) return;
+      if (!startCity || !endCity) {
+        alert("指定された城が見つかりません");
+        return;
+      }
 
       const pathElement = document.createElement("div");
       pathElement.style.position = "absolute";
-      pathElement.style.top = `${fromCity.y + 15}px`;
-      pathElement.style.left = `${fromCity.x + 15}px`;
-      pathElement.style.width = `${Math.abs(toCity.x - fromCity.x)}px`;
-      pathElement.style.height = `${Math.abs(toCity.y - fromCity.y)}px`;
+      pathElement.style.top = `${startCity.y + 15}px`;
+      pathElement.style.left = `${startCity.x + 15}px`;
+      pathElement.style.width = `${Math.abs(endCity.x - startCity.x)}px`;
+      pathElement.style.height = `${Math.abs(endCity.y - startCity.y)}px`;
       pathElement.style.backgroundColor = "gray";
       pathElement.style.opacity = 0.5;
+      pathElement.style.transform = `rotate(${Math.atan2(endCity.y - startCity.y, endCity.x - startCity.x)}rad)`;
+      pathElement.style.transformOrigin = "0 0";
+      pathElement.style.width = `${Math.hypot(endCity.x - startCity.x, endCity.y - startCity.y)}px`;
+
       mapContainer.appendChild(pathElement);
     }
-
-    // ユーザーが指定した城の間に道を引く
-    pathInput.addEventListener("change", function() {
-      const pathValues = pathInput.value.split(",").map(value => value.trim());
-      if (pathValues.length === 2) {
-        drawPath(pathValues[0], pathValues[1]);
-      }
-    });
 
     // 城を配置する
     placeCityButton.addEventListener("click", function() {
@@ -216,40 +193,17 @@
       cityPtInput.value = '';
     });
 
-    // 城を修正する
-    editCityButton.addEventListener("click", function() {
-      const selectedCityId = parseInt(editCitySelect.value);
-      const newXCoord = parseInt(editXCoordInput.value);
-      const newYCoord = parseInt(editYCoordInput.value);
+    // 道を開通する
+    drawPathButton.addEventListener("click", function() {
+      const startCityName = pathStartInput.value;
+      const endCityName = pathEndInput.value;
 
-      if (isNaN(selectedCityId) || isNaN(newXCoord) || isNaN(newYCoord)) {
-        alert("修正する城を選んで、新しい座標を入力してください");
+      if (!startCityName || !endCityName) {
+        alert("両方の城名を入力してください");
         return;
       }
 
-      const city = cities.find(c => c.id === selectedCityId);
-      city.x = newXCoord;
-      city.y = newYCoord;
-
-      placeCities(); // 城を再配置
-      updateStrategy(); // 戦略リストを更新
-    });
-
-    // 城を削除する
-    deleteCityButton.addEventListener("click", function() {
-      const selectedCityId = parseInt(editCitySelect.value);
-
-      if (isNaN(selectedCityId)) {
-        alert("削除する城を選んでください");
-        return;
-      }
-
-      const index = cities.findIndex(c => c.id === selectedCityId);
-      if (index !== -1) {
-        cities.splice(index, 1);
-        placeCities(); // 城を再配置
-        updateStrategy(); // 戦略リストを更新
-      }
+      drawPath(startCityName, endCityName);
     });
 
     // 戦略提案
