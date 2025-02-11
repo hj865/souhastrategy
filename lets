@@ -34,6 +34,10 @@
       justify-content: center;
       cursor: pointer;
     }
+    #input-form {
+      text-align: center;
+      margin: 20px auto;
+    }
     #path-input {
       margin: 20px auto;
       display: block;
@@ -62,6 +66,24 @@
 <body>
 
   <div id="map-container"></div>
+
+  <!-- 城配置入力フォーム -->
+  <div id="input-form">
+    <label for="city-name">城名:</label>
+    <input type="text" id="city-name" placeholder="城A">
+    <br>
+    <label for="x-coord">X座標:</label>
+    <input type="number" id="x-coord" placeholder="50">
+    <br>
+    <label for="y-coord">Y座標:</label>
+    <input type="number" id="y-coord" placeholder="100">
+    <br>
+    <label for="city-pt">ポイント:</label>
+    <input type="number" id="city-pt" placeholder="1000">
+    <br>
+    <button id="place-city-button">配置する</button>
+  </div>
+
   <input type="text" id="path-input" placeholder="城番号1, 城番号2 (例: 1,2)">
   <button id="save-button">マップを保存</button>
 
@@ -69,18 +91,20 @@
 
   <script>
     // 城の配置
-    const cities = [
-      { id: 1, name: "城A", x: 50, y: 100, pt: 1000 },
-      { id: 2, name: "城B", x: 200, y: 150, pt: 1600 },
-      { id: 3, name: "城C", x: 350, y: 200, pt: 2700 }
-    ];
-
+    const cities = [];
     const mapContainer = document.getElementById("map-container");
     const pathInput = document.getElementById("path-input");
     const strategyList = document.getElementById("strategy");
+    const cityNameInput = document.getElementById("city-name");
+    const xCoordInput = document.getElementById("x-coord");
+    const yCoordInput = document.getElementById("y-coord");
+    const cityPtInput = document.getElementById("city-pt");
+    const placeCityButton = document.getElementById("place-city-button");
 
     // 城をマップに配置
     function placeCities() {
+      mapContainer.innerHTML = ''; // マップをリセット
+
       cities.forEach(city => {
         const cityElement = document.createElement("div");
         cityElement.classList.add("city");
@@ -119,30 +143,50 @@
       }
     });
 
+    // 城を配置する
+    placeCityButton.addEventListener("click", function() {
+      const cityName = cityNameInput.value;
+      const xCoord = parseInt(xCoordInput.value);
+      const yCoord = parseInt(yCoordInput.value);
+      const pt = parseInt(cityPtInput.value);
+
+      if (cityName && !isNaN(xCoord) && !isNaN(yCoord) && !isNaN(pt)) {
+        const newCity = {
+          id: cities.length + 1,
+          name: cityName,
+          x: xCoord,
+          y: yCoord,
+          pt: pt
+        };
+        cities.push(newCity);
+
+        placeCities(); // 城を再配置
+        updateStrategy(); // 戦略リストを更新
+      } else {
+        alert("すべての入力項目を正しく入力してください");
+      }
+
+      // 入力フォームをリセット
+      cityNameInput.value = '';
+      xCoordInput.value = '';
+      yCoordInput.value = '';
+      cityPtInput.value = '';
+    });
+
     // 戦略提案
     function updateStrategy() {
       strategyList.innerHTML = '';
       cities.forEach(city => {
         const li = document.createElement("li");
-        li.textContent = `日付: 1, 布告先: ${city.name}, pt: ${city.pt}`;
+        li.textContent = `城名: ${city.name}, X: ${city.x}, Y: ${city.y}, pt: ${city.pt}`;
         strategyList.appendChild(li);
       });
     }
 
-    // 保存機能（GitHub Gistにデータを保存）
+    // 保存ボタン（ただしデータ保存はなし）
     document.getElementById("save-button").addEventListener("click", function() {
-      const mapData = {
-        cities: cities,
-        paths: [] // 道のデータをここに追加予定
-      };
-
-      alert("マップが保存されました！（Gistに保存予定）");
-      // Gist APIを使って保存する処理を後ほど追加
+      alert("データ保存機能は後で追加します。");
     });
-
-    // 初期化
-    placeCities();
-    updateStrategy();
   </script>
 
 </body>
