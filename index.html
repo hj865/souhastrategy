@@ -120,6 +120,8 @@
     const ownedCitiesInput = document.getElementById("owned-cities");
     const generateStrategyButton = document.getElementById("generate-strategy-button");
 
+    let ownedCities = [];
+
     // 城をマップに配置
     function placeCities() {
       mapContainer.innerHTML = ''; // マップをリセット
@@ -159,6 +161,7 @@
           x: xCoord,
           y: yCoord,
           pt: pt,
+          isOwned: false, // 初期状態では所有していない
         };
         cities.push(newCity);
 
@@ -179,7 +182,7 @@
     generateStrategyButton.addEventListener("click", function() {
       const currentDay = parseInt(currentDaySelect.value);
       const ownedCityNames = ownedCitiesInput.value.split(',').map(name => name.trim());
-      const ownedCities = cities.filter(city => ownedCityNames.includes(city.name));
+      ownedCities = cities.filter(city => ownedCityNames.includes(city.name));
 
       if (ownedCities.length === 0) {
         alert("所持している城を選択してください");
@@ -196,17 +199,17 @@
       const remainingDays = 6 - currentDay;
       let strategy = [];
 
-      // 動的計画法を使用して最適な布告先を計算
+      // 所持している城に基づき、毎日どの城に布告すべきかを計算
       let dailyMaxStrategy = [];
 
       for (let day = currentDay; day <= 6; day++) {
-        let availableCities = ownedCities.slice();
+        let availableCities = ownedCities.filter(city => !city.isOwned); // 所有していない城のみ
         let dailyStrategy = [];
 
         // 1日2城のみ布告可能
         for (let i = 0; i < 2 && availableCities.length > 0; i++) {
           let selectedCity = availableCities.pop();
-          let maxPtCity = cities.filter(city => city !== selectedCity)[0]; // ここでは単純に最大のptを選んでいます。
+          let maxPtCity = cities.filter(city => city !== selectedCity && !city.isOwned)[0]; // まだ布告していない最大のptを持つ城
 
           dailyStrategy.push({
             day: day,
@@ -214,6 +217,9 @@
             to: maxPtCity.name,
             reason: `${selectedCity.name}から${maxPtCity.name}へ布告するとptが最大化されます。`
           });
+
+          // 布告した城を所有に変更
+          selectedCity.isOwned = true;
         }
         dailyMaxStrategy.push(dailyStrategy);
       }
