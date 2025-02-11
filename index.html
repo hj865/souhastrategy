@@ -97,10 +97,8 @@
       <option value="">--城を選択--</option>
     </select>
     <br>
-    <label for="adjacent-cities">隣接する城を選択:</label>
-    <select id="adjacent-cities" multiple>
-      <option value="">--隣接城を選択--</option>
-    </select>
+    <label for="adjacent-cities">隣接する城を選択（カンマ区切りで入力）:</label>
+    <input type="text" id="adjacent-cities" placeholder="城B, 城C">
     <br>
     <button id="save-adjacency-button">隣接城を設定</button>
   </div>
@@ -118,9 +116,7 @@
     </select>
     <br>
     <label for="owned-cities">所持している城:</label>
-    <select id="owned-cities" multiple>
-      <!-- 城のオプションは動的に追加 -->
-    </select>
+    <input type="text" id="owned-cities" placeholder="城A, 城B">
     <br>
     <button id="generate-strategy-button">戦略を生成</button>
   </div>
@@ -139,10 +135,10 @@
     const cityPtInput = document.getElementById("city-pt");
     const placeCityButton = document.getElementById("place-city-button");
     const editCitySelect = document.getElementById("edit-city");
-    const adjacentCitiesSelect = document.getElementById("adjacent-cities");
+    const adjacentCitiesInput = document.getElementById("adjacent-cities");
     const saveAdjacencyButton = document.getElementById("save-adjacency-button");
     const currentDaySelect = document.getElementById("current-day");
-    const ownedCitiesSelect = document.getElementById("owned-cities");
+    const ownedCitiesInput = document.getElementById("owned-cities");
     const generateStrategyButton = document.getElementById("generate-strategy-button");
 
     // 城をマップに配置
@@ -176,17 +172,11 @@
     // 編集用の選択肢を更新
     function updateCitySelect() {
       editCitySelect.innerHTML = '<option value="">--城を選択--</option>';
-      adjacentCitiesSelect.innerHTML = '<option value="">--隣接城を選択--</option>';
       cities.forEach(city => {
         const option = document.createElement("option");
         option.value = city.id;
         option.textContent = city.name;
         editCitySelect.appendChild(option);
-
-        const adjacentOption = document.createElement("option");
-        adjacentOption.value = city.id;
-        adjacentOption.textContent = city.name;
-        adjacentCitiesSelect.appendChild(adjacentOption);
       });
 
       // 所持城の選択肢を更新
@@ -195,13 +185,7 @@
 
     // 所持している城を選択するセレクトボックスに追加
     function updateOwnedCitiesSelect() {
-      ownedCitiesSelect.innerHTML = ''; // リセット
-      cities.forEach(city => {
-        const option = document.createElement("option");
-        option.value = city.id;
-        option.textContent = city.name;
-        ownedCitiesSelect.appendChild(option);
-      });
+      ownedCitiesInput.value = cities.map(city => city.name).join(', ');
     }
 
     // 城を配置する
@@ -238,46 +222,43 @@
     // 隣接城を設定する
     saveAdjacencyButton.addEventListener("click", function() {
       const selectedCityId = parseInt(editCitySelect.value);
-      const selectedAdjacencies = Array.from(adjacentCitiesSelect.selectedOptions).map(option => parseInt(option.value));
+      const adjacentCities = adjacentCitiesInput.value.split(',').map(cityName => cityName.trim());
 
-      if (isNaN(selectedCityId) || selectedAdjacencies.length === 0) {
+      if (isNaN(selectedCityId) || adjacentCities.length === 0) {
         alert("隣接城を選んでください");
         return;
       }
 
       const city = cities.find(c => c.id === selectedCityId);
-      city.adjacent = selectedAdjacencies;
+      city.adjacent = adjacentCities;
 
-      alert(`城 ${city.name} に隣接する城が設定されました`);
+      alert(`城 ${city.name} に隣接する城が設定されました: ${adjacentCities.join(', ')}`);
       updateStrategy(); // 戦略リストを更新
     });
 
     // 戦略を生成する
     generateStrategyButton.addEventListener("click", function() {
       const currentDay = parseInt(currentDaySelect.value);
-      const ownedCityIds = Array.from(ownedCitiesSelect.selectedOptions).map(option => parseInt(option.value));
+      const ownedCities = ownedCitiesInput.value.split(',').map(name => cities.find(city => city.name === name.trim()));
 
-      if (ownedCityIds.length === 0) {
+      if (ownedCities.length === 0) {
         alert("所持している城を選択してください");
         return;
       }
 
-      generateStrategy(ownedCityIds, currentDay);
+      generateStrategy(ownedCities, currentDay);
     });
 
     // 戦略の生成
-    function generateStrategy(ownedCityIds, currentDay) {
+    function generateStrategy(ownedCities, currentDay) {
       strategyList.innerHTML = ''; // 戦略リストをリセット
 
-      // 所持している城を取得
-      const ownedCities = cities.filter(city => ownedCityIds.includes(city.id));
-
-      // 最大ポイントを得るための布告先を計算
       const remainingDays = 6 - currentDay;
       let strategy = [];
+
       ownedCities.forEach(city => {
-        const possibleTargets = city.adjacent.map(adjCityId => {
-          const targetCity = cities.find(c => c.id === adjCityId);
+        const possibleTargets = city.adjacent.map(adjCityName => {
+          const targetCity = cities.find(c => c.name === adjCityName);
           return targetCity;
         });
 
