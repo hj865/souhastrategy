@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>キングダム乱 マップ作成</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    #map-container {
+      width: 600px;
+      height: 600px;
+      background-color: #fff;
+      border: 1px solid #000;
+      position: relative;
+      margin: 20px auto;
+      overflow: hidden;
+    }
+    .city {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background-color: #007bff;
+      border-radius: 50%;
+      text-align: center;
+      color: white;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    #path-input {
+      margin: 20px auto;
+      display: block;
+      text-align: center;
+    }
+    #strategy {
+      margin: 20px auto;
+      width: 80%;
+      list-style-type: none;
+      padding-left: 0;
+    }
+    #save-button {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #save-button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="map-container"></div>
+  <input type="text" id="path-input" placeholder="城番号1, 城番号2 (例: 1,2)">
+  <button id="save-button">マップを保存</button>
+
+  <ul id="strategy"></ul>
+
+  <script>
+    // 城の配置
+    const cities = [
+      { id: 1, name: "城A", x: 50, y: 100, pt: 1000 },
+      { id: 2, name: "城B", x: 200, y: 150, pt: 1600 },
+      { id: 3, name: "城C", x: 350, y: 200, pt: 2700 }
+    ];
+
+    const mapContainer = document.getElementById("map-container");
+    const pathInput = document.getElementById("path-input");
+    const strategyList = document.getElementById("strategy");
+
+    // 城をマップに配置
+    function placeCities() {
+      cities.forEach(city => {
+        const cityElement = document.createElement("div");
+        cityElement.classList.add("city");
+        cityElement.style.left = `${city.x}px`;
+        cityElement.style.top = `${city.y}px`;
+        cityElement.textContent = city.name;
+        cityElement.dataset.cityId = city.id;
+
+        mapContainer.appendChild(cityElement);
+      });
+    }
+
+    // 道を引く
+    function drawPath(from, to) {
+      const fromCity = cities.find(city => city.id === parseInt(from));
+      const toCity = cities.find(city => city.id === parseInt(to));
+
+      if (!fromCity || !toCity) return;
+
+      const pathElement = document.createElement("div");
+      pathElement.style.position = "absolute";
+      pathElement.style.top = `${fromCity.y + 15}px`;
+      pathElement.style.left = `${fromCity.x + 15}px`;
+      pathElement.style.width = `${Math.abs(toCity.x - fromCity.x)}px`;
+      pathElement.style.height = `${Math.abs(toCity.y - fromCity.y)}px`;
+      pathElement.style.backgroundColor = "gray";
+      pathElement.style.opacity = 0.5;
+      mapContainer.appendChild(pathElement);
+    }
+
+    // ユーザーが指定した城の間に道を引く
+    pathInput.addEventListener("change", function() {
+      const pathValues = pathInput.value.split(",").map(value => value.trim());
+      if (pathValues.length === 2) {
+        drawPath(pathValues[0], pathValues[1]);
+      }
+    });
+
+    // 戦略提案
+    function updateStrategy() {
+      strategyList.innerHTML = '';
+      cities.forEach(city => {
+        const li = document.createElement("li");
+        li.textContent = `日付: 1, 布告先: ${city.name}, pt: ${city.pt}`;
+        strategyList.appendChild(li);
+      });
+    }
+
+    // 保存機能（GitHub Gistにデータを保存）
+    document.getElementById("save-button").addEventListener("click", function() {
+      const mapData = {
+        cities: cities,
+        paths: [] // 道のデータをここに追加予定
+      };
+
+      alert("マップが保存されました！（Gistに保存予定）");
+      // Gist APIを使って保存する処理を後ほど追加
+    });
+
+    // 初期化
+    placeCities();
+    updateStrategy();
+  </script>
+
+</body>
+</html>
