@@ -33,17 +33,12 @@
       cursor: pointer;
       border-radius: 50%;
     }
-    #input-form, #path-form, #edit-form, #strategy-form {
+    #input-form, #strategy-form {
       text-align: center;
       margin: 20px auto;
     }
-    #input-form input, #path-form input, #edit-form input, #strategy-form input, #strategy-form select {
+    #input-form input, #strategy-form input, #strategy-form select {
       margin: 5px;
-    }
-    #path-input {
-      margin: 20px auto;
-      display: block;
-      text-align: center;
     }
     #strategy {
       margin: 20px auto;
@@ -90,19 +85,6 @@
     <button id="place-city-button">配置する</button>
   </div>
 
-  <!-- 隣接城設定フォーム -->
-  <div id="edit-form">
-    <label for="edit-city">隣接城を設定する城を選択:</label>
-    <select id="edit-city">
-      <option value="">--城を選択--</option>
-    </select>
-    <br>
-    <label for="adjacent-cities">隣接する城を選択（カンマ区切りで入力）:</label>
-    <input type="text" id="adjacent-cities" placeholder="城B, 城C">
-    <br>
-    <button id="save-adjacency-button">隣接城を設定</button>
-  </div>
-
   <!-- 戦略提案フォーム -->
   <div id="strategy-form">
     <label for="current-day">現在の日数:</label>
@@ -134,9 +116,6 @@
     const yCoordInput = document.getElementById("y-coord");
     const cityPtInput = document.getElementById("city-pt");
     const placeCityButton = document.getElementById("place-city-button");
-    const editCitySelect = document.getElementById("edit-city");
-    const adjacentCitiesInput = document.getElementById("adjacent-cities");
-    const saveAdjacencyButton = document.getElementById("save-adjacency-button");
     const currentDaySelect = document.getElementById("current-day");
     const ownedCitiesInput = document.getElementById("owned-cities");
     const generateStrategyButton = document.getElementById("generate-strategy-button");
@@ -164,28 +143,6 @@
         cityElement.dataset.cityId = city.id;
         mapContainer.appendChild(cityElement);
       });
-
-      // 編集用のドロップダウンを更新
-      updateCitySelect();
-    }
-
-    // 編集用の選択肢を更新
-    function updateCitySelect() {
-      editCitySelect.innerHTML = '<option value="">--城を選択--</option>';
-      cities.forEach(city => {
-        const option = document.createElement("option");
-        option.value = city.id;
-        option.textContent = city.name;
-        editCitySelect.appendChild(option);
-      });
-
-      // 所持城の選択肢を更新
-      updateOwnedCitiesSelect();
-    }
-
-    // 所持している城を選択するセレクトボックスに追加
-    function updateOwnedCitiesSelect() {
-      ownedCitiesInput.value = cities.map(city => city.name).join(', ');
     }
 
     // 城を配置する
@@ -202,7 +159,6 @@
           x: xCoord,
           y: yCoord,
           pt: pt,
-          adjacent: [] // 隣接城を格納する配列
         };
         cities.push(newCity);
 
@@ -219,27 +175,11 @@
       cityPtInput.value = '1000';
     });
 
-    // 隣接城を設定する
-    saveAdjacencyButton.addEventListener("click", function() {
-      const selectedCityId = parseInt(editCitySelect.value);
-      const adjacentCities = adjacentCitiesInput.value.split(',').map(cityName => cityName.trim());
-
-      if (isNaN(selectedCityId) || adjacentCities.length === 0) {
-        alert("隣接城を選んでください");
-        return;
-      }
-
-      const city = cities.find(c => c.id === selectedCityId);
-      city.adjacent = adjacentCities;
-
-      alert(`城 ${city.name} に隣接する城が設定されました: ${adjacentCities.join(', ')}`);
-      updateStrategy(); // 戦略リストを更新
-    });
-
     // 戦略を生成する
     generateStrategyButton.addEventListener("click", function() {
       const currentDay = parseInt(currentDaySelect.value);
-      const ownedCities = ownedCitiesInput.value.split(',').map(name => cities.find(city => city.name === name.trim()));
+      const ownedCityNames = ownedCitiesInput.value.split(',').map(name => name.trim());
+      const ownedCities = cities.filter(city => ownedCityNames.includes(city.name));
 
       if (ownedCities.length === 0) {
         alert("所持している城を選択してください");
@@ -249,37 +189,42 @@
       generateStrategy(ownedCities, currentDay);
     });
 
-    // 戦略の生成
+    // 戦略の生成（動的計画法）
     function generateStrategy(ownedCities, currentDay) {
       strategyList.innerHTML = ''; // 戦略リストをリセット
 
       const remainingDays = 6 - currentDay;
       let strategy = [];
 
-      ownedCities.forEach(city => {
-        const possibleTargets = city.adjacent.map(adjCityName => {
-          const targetCity = cities.find(c => c.name === adjCityName);
-          return targetCity;
-        });
+      // 動的計画法を使用して最適な布告先を計算
+      let dailyMaxStrategy = [];
 
-        possibleTargets.forEach(targetCity => {
-          const reason = `隣接する城 ${city.name} と ${targetCity.name} は戦略的に有利な位置にあります。`;
+      for (let day = currentDay; day <= 6; day++) {
+        let availableCities = ownedCities.slice();
+        let dailyStrategy = [];
 
-          // 戦略をリストに追加
-          strategy.push({
-            day: currentDay + remainingDays,
-            from: city.name,
-            to: targetCity.name,
-            reason: reason
+        // 1日2城のみ布告可能
+        for (let i = 0; i < 2 && availableCities.length > 0; i++) {
+          let selectedCity = availableCities.pop();
+          let maxPtCity = cities.filter(city => city !== selectedCity)[0]; // ここでは単純に最大のptを選んでいます。
+
+          dailyStrategy.push({
+            day: day,
+            from: selectedCity.name,
+            to: maxPtCity.name,
+            reason: `${selectedCity.name}から${maxPtCity.name}へ布告するとptが最大化されます。`
           });
-        });
-      });
+        }
+        dailyMaxStrategy.push(dailyStrategy);
+      }
 
       // 戦略を表示
-      strategy.forEach(item => {
-        const li = document.createElement("li");
-        li.textContent = `日付: ${item.day} - 城 ${item.from} から 城 ${item.to} へ布告: ${item.reason}`;
-        strategyList.appendChild(li);
+      dailyMaxStrategy.forEach(dayStrategy => {
+        dayStrategy.forEach(item => {
+          const li = document.createElement("li");
+          li.textContent = `日付: ${item.day} - 城 ${item.from} から 城 ${item.to} へ布告: ${item.reason}`;
+          strategyList.appendChild(li);
+        });
       });
     }
 
